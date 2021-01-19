@@ -1,9 +1,8 @@
 Flock flock;
-Ball pelota = new Ball(100, 100, 10);
-//Metodo para definir las dimenciones de la ventana
+Ball pelota = new Ball(180, 180, 50);
+int cantidadPajaros = 200;
 
-int cantidadPajaros = 100;
-
+//Se define tamaño de ventana y posicion inicial de los pajaros
 void setup() {
   size(640, 360);
   flock = new Flock();
@@ -14,38 +13,35 @@ void setup() {
   }
 }
 
+
+//Se dibuja la pelota y los pajaros
 void draw() {
   background(50);
-  flock.run();
-  pelota.update();
-  pelota.display();
-  pelota.checkBoundaryCollision();
-  
   for (Boid boids : flock.boids) {
     boids.checkCollision(pelota);    
   }
-
-
-  //Agregar llamado del metodo para que los pajaritos no colisionen
+  //Se actualizan las posiciones de los pajaros
+  flock.run();
   
-  
-  
+  //Se dibuja la pelota en pantalla
+  pelota.display();
+  pelota.checkBoundaryCollision();  
 }
 
-// Add a new boid into the System
+// Agregar pajaros con un click
 void mousePressed() {
   flock.addBoid(new Boid(mouseX,mouseY));
 }
 
 
 
-
+//Clase pelota
 class Ball {
   PVector position;
   PVector velocity;
-
   float radius, m;
-
+  
+  //Constructor de la clase pelota
   Ball(float x, float y, float r_) {
     position = new PVector(x, y);
     velocity = PVector.random2D();
@@ -53,7 +49,8 @@ class Ball {
     radius = r_;
     m = radius*.1;
   }
-
+  
+  //Actualizacion de la pelota  **Futura implementacion con pelota en movimiento**
   void update() {
     position.add(velocity);
   }
@@ -64,6 +61,7 @@ class Ball {
     ellipse(position.x, position.y, radius*2, radius*2);
   }
   
+   //Metodo para que la pelota no colisione con la pared **Futura implementacion con pelota en movimiento**
    void checkBoundaryCollision() {
     if (position.x > width-radius) {
       position.x = width-radius;
@@ -84,10 +82,7 @@ class Ball {
 
 
 
-
-
 // The Flock (a list of Boid objects)
-
 class Flock {
   ArrayList<Boid> boids; // An ArrayList for all the boids
 
@@ -110,14 +105,7 @@ class Flock {
 
 
 
-
-
-
-
-
-
 // The Boid class
-
 class Boid {
 
   PVector position;
@@ -139,7 +127,7 @@ class Boid {
   
       position = new PVector(x, y);
       r = 2.0;
-      maxspeed = 2;
+      maxspeed = 1;
       maxforce = 0.03;
   }
 
@@ -316,102 +304,69 @@ class Boid {
       return new PVector(0, 0);
     }
   }
-  
-  
+  ////////////////////////////////////////////////////////////////////////////////////////
+  //Metodo que verifica si esta por colisionar con la pelota para cambiar la trayectoria//
+  ////////////////////////////////////////////////////////////////////////////////////////
   void checkCollision(Ball other) {
-
     //Vector de distancia
     PVector distanceVect = PVector.sub(other.position, position);
 
     //Magnitud del vector de distancia
     float distanceVectMag = distanceVect.mag();
     float minDistance = other.radius + 10;
-
+    
+    
+    //Si el pajaro esta por colosionar
     if (distanceVectMag < minDistance) {
       //Para que direccion tiene que ir si toca la pelota.
       float distanceCorrection = (minDistance-distanceVectMag)/2.0;
       PVector d = distanceVect.copy();
       PVector correctionVector = d.normalize().mult(distanceCorrection);
-      
+   
       
       position.add(correctionVector); 
       position.sub(correctionVector);
       
 
-      // get angle of distanceVect
-      float theta  = distanceVect.heading();
-      // precalculate trig values
+      //Obtiene el angulo de la trayectoria de los pajaros
+      float theta  = velocity.heading2D() + radians(45);
+      
       float sine = sin(theta);
       float cosine = cos(theta);
 
-      /* bTemp will hold rotated ball positions. You 
-       just need to worry about bTemp[1] position*/
-      PVector[] bTemp = {
-        new PVector(), new PVector()
-      };
+      
+      PVector bTemp = new PVector();
+      
+      
 
-      /* this ball's position is relative to the other
-       so you can use the vector between them (bVect) as the 
-       reference point in the rotation expressions.
-       bTemp[0].position.x and bTemp[0].position.y will initialize
-       automatically to 0.0, which is what you want
-       since b[1] will rotate around b[0] */
-      bTemp[1].x  = cosine * distanceVect.x + sine * distanceVect.y;
-      bTemp[1].y  = cosine * distanceVect.y - sine * distanceVect.x;
+       
+      bTemp.x  = cosine * distanceVect.x + sine * distanceVect.y;
+      bTemp.y  = cosine * distanceVect.y - sine * distanceVect.x;
 
-      // rotate Temporary velocities
-      PVector[] vTemp = {
-        new PVector(), new PVector()
-      };
+      
+      PVector vTemp = new PVector();
 
-      vTemp[0].x  = cosine * velocity.x + sine * velocity.y;
-      vTemp[0].y  = cosine * velocity.y - sine * velocity.x;
-      vTemp[1].x  = cosine * other.velocity.x + sine * other.velocity.y;
-      vTemp[1].y  = cosine * other.velocity.y - sine * other.velocity.x;
+      vTemp.x  = cosine * velocity.x + sine * velocity.y;
+      vTemp.y  = cosine * velocity.y - sine * velocity.x;
+     
 
-      /* Now that velocities are rotated, you can use 1D
-       conservation of momentum equations to calculate 
-       the final velocity along the x-axis. */
-      PVector[] vFinal = {  
-        new PVector(), new PVector()
-      };
-      float valor = 10;
-      // final rotated velocity for b[0]
-      vFinal[0].x = valor + ((other.m) * vTemp[0].x + 2 * other.m * vTemp[1].x) / ( other.m);
-      vFinal[0].y = valor + vTemp[0].y;
+      PVector vFinal = new PVector();
+      //Rotacion final
+      float valor = 100;
+      vFinal.x = valor + ((other.m) * vTemp.x + 2 * other.m * vTemp.x) / ( other.m);
+      vFinal.y = valor + vTemp.y;
+      
+      bTemp.x += vFinal.x;
 
-      // final rotated velocity for b[0]
-      vFinal[1].x = valor+((other.m) * vTemp[1].x + 2  * vTemp[0].x) / ( other.m);
-      vFinal[1].y = valor+vTemp[1].y;
+      // rotacion de los direcciones de los pajaros
+      PVector bFinal = new PVector();
 
-      // hack to avoid clumping
-      bTemp[0].x += vFinal[0].x;
-      bTemp[1].x += vFinal[1].x;
+      bFinal.x = cosine * bTemp.x - sine * bTemp.y;
+      bFinal.y = cosine * bTemp.y + sine * bTemp.x;
 
-      /* Rotate ball positions and velocities back
-       Reverse signs in trig expressions to rotate 
-       in the opposite direction */
-      // rotate balls
-      PVector[] bFinal = { 
-        new PVector(), new PVector()
-      };
-
-      bFinal[0].x = cosine * bTemp[0].x - sine * bTemp[0].y;
-      bFinal[0].y = cosine * bTemp[0].y + sine * bTemp[0].x;
-      bFinal[1].x = cosine * bTemp[1].x - sine * bTemp[1].y;
-      bFinal[1].y = cosine * bTemp[1].y + sine * bTemp[1].x;
-
-      // update balls to screen position
-      position.x = position.x + bFinal[1].x;
-      position.y = position.y + bFinal[1].y;
-
-      position.add(bFinal[0]);
-
-      // update velocities
-      velocity.x = cosine * vFinal[0].x - sine * vFinal[0].y;
-      velocity.y = cosine * vFinal[0].y + sine * vFinal[0].x;
-      velocity.x = cosine * vFinal[1].x - sine * vFinal[1].y;
-      velocity.y = cosine * vFinal[1].y + sine * vFinal[1].x;
+      // Se actualizan las velocidades de los pajaros
+      velocity.x = cosine * vFinal.x - sine * vFinal.y;
+      velocity.y = cosine * vFinal.y + sine * vFinal.x;
     }
   
   }
